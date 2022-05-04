@@ -183,7 +183,7 @@ class PlayerData:
             
             plyr_stats_df = plyr_stats_df.reindex(columns=plyr_column_names+extras, fill_value=0)
             
-            plyr_stats_df["position"] = [[] for _ in range(len(player_names))]
+            plyr_stats_df["position"] = [{} for _ in range(len(player_names))]
 
             data[team] = {"player_stats": plyr_stats_df}
 
@@ -266,14 +266,19 @@ class PlayerData:
                                             data[squad]["player_stats"].loc[filtr, column] = age_string
 
                                     elif column == "position":
-                                        positions = data[squad]["player_stats"].loc[filtr, column].values
+                                        positions = data[squad]["player_stats"].loc[filtr, column].to_dict()
+                                        row_num = list(positions.keys())[0]
+                                        positions = positions[row_num]
+
                                         pstn = squad_stats_df.loc[sq_filtr, column].values.tolist()
                                         pstns = pstn[0].split(",")
                                         for p in pstns:
-                                            if p not in positions.tolist()[0]:
-                                                positions[0].append(p)
+                                            if p not in list(positions.keys()):
+                                                positions[p] = 1
+                                            else:
+                                                positions[p] += 1
 
-                                        data[squad]["player_stats"].loc[filtr, column] = positions
+                                        # data[squad]["player_stats"].loc[filtr, column] = positions
                             
                             data[squad]["player_stats"].loc[filtr, "appearances"] += 1
 
