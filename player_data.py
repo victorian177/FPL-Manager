@@ -431,5 +431,24 @@ class PlayerData:
 
             for stat in stats_total:
                 data["teams_stats"][stat] = team_totals[stat]
-                    
+        
+        for key, value in data.items():
+            if key != "teams_stats":
+                total_aerials = value["player_stats"]["aerials_lost"] + value["player_stats"]["aerials_won"]
+                value["player_stats"]["aerials_won_pct"] = (value["player_stats"]["aerials_won"] / total_aerials) * 100
+
+                dribble_tackles = value["player_stats"]["dribble_tackles"] + value["player_stats"]["dribbled_past"]
+                value["player_stats"]["dribble_tackles_pct"] = (value["player_stats"]["dribble_tackles"] / dribble_tackles) * 100
+
+                value["player_stats"]['dribbles_completed_pct'] = (value["player_stats"]['dribbles_completed'] / value["player_stats"]['dribbles']) * 100
+
+                value["player_stats"]['passes_pct'] = (value["player_stats"]['passes_completed'] / value["player_stats"]['passes']) * 100
+                value["player_stats"]['passes_pct_medium'] = (value["player_stats"]['passes_completed_medium'] / value["player_stats"]['passes_medium']) * 100
+                value["player_stats"]['passes_pct_long'] = (value["player_stats"]['passes_completed_long'] / value["player_stats"]['passes_long']) * 100
+
+                value["player_stats"]['passes_received_pct'] = (value["player_stats"]['passes_received'] / value["player_stats"]['pass_targets']) * 100
+                value["player_stats"]['pressure_regain_pct'] = (value["player_stats"]['pressure_regains'] / value["player_stats"]['pressures']) * 100
+
+                value["player_stats"].fillna(0, inplace=True)
+
         return data
