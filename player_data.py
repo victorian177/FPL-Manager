@@ -47,6 +47,14 @@ class PlayerData:
         return plyrs_dctnry
 
     def data_lister(self, **options):
+        """
+            "home": "matches in which the team(s) is/are home", 
+            "away": "matches in which the team(s) is/are away", 
+            "team": "matches in which the team(s) is featured", 
+            "date_range": "YYYY-MM-DD: matches with date range specified", 
+            "match_range": "number of matches to be considered", 
+            "gameweek_range": "matches with gameweek(s) to be considered*"
+        """
         VALID_OPTIONS = {
             "home": "matches in which the team(s) is/are home", 
             "away": "matches in which the team(s) is/are away", 
@@ -435,7 +443,7 @@ class PlayerData:
                 data["teams_stats"][stat] = team_totals[stat]
         
         for key, value in data.items():
-            if key != "teams_stats":
+            if key not in ['teams_stats', 'played_fixtures']:
                 total_aerials = value["player_stats"]["aerials_lost"] + value["player_stats"]["aerials_won"]
                 value["player_stats"]["aerials_won_pct"] = (value["player_stats"]["aerials_won"] / total_aerials) * 100
 
