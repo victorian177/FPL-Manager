@@ -202,6 +202,8 @@ class PlayerData:
 
         data["teams_stats"] = teams_stats_df
 
+        data['played_fixtures'] = played_fixtures
+
         number_of_fixtures = len(played_fixtures.index)
 
         # DATA COLLECTION FOR EACH FIXTURE IN 'played_fixtures'
