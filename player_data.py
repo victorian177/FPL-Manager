@@ -48,13 +48,34 @@ class PlayerData:
 
     def data_lister(self, **options):
         """
-            "home": "matches in which the team(s) is/are home", 
-            "away": "matches in which the team(s) is/are away", 
-            "team": "matches in which the team(s) is featured", 
-            "date_range": "YYYY-MM-DD: matches with date range specified", 
-            "match_range": "number of matches to be considered", 
-            "gameweek_range": "matches with gameweek(s) to be considered*"
+            Uses the filters specified in **options to collate data pertaining player stats, goalkeeper stats and team stats.
+            No options does for all played matches in the specified season.
+
+            :param **options
+                String-based inputs -> expects a valid team name
+                    home: str(team name) | list -> matches in which the team(s) is/are home
+                    away: str(team name) | list -> matches in which the team(s) is/are away
+                    team: str(team name) | list -> matches in which the team(s) is featured
+                    date_range: str(YYYY-MM-DD) | list -> matches with date range specified
+
+                Integer-based inputs -> expects 
+                    match_range: int | list -> number of matches to be considered
+                    gameweek_range: int | list -> matches with gameweek(s) to be considered
+
+                ~ list is expected to have a length of 2 specifying a start and end
+
+            :return: dict, a dictionary containing each team with its corresponding player stats and goalkeeper stats(both as pandas Dataframe), team stats(pandas DataFrame)
+
+            :raises: Exception, when any option is not valid i.e.
+                - invalid option is inputted
+                - length of option is more than two for integer-based inputs and date_range
+                - date_range, gameweek_range is not in specified range
+                - match_range is more matches that the fixture list stipulates
+                - home, away, team is not a team that played in the specified season
+                - list is more than two elements and not correct type
+
         """
+
         VALID_OPTIONS = {
             "home": "matches in which the team(s) is/are home", 
             "away": "matches in which the team(s) is/are away", 
