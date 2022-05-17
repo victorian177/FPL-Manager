@@ -208,7 +208,7 @@ class PlayerData:
             player_names = self.players[team]["outfield"] + self.players[team]["goalkeeper"]
             plyr_stats_df = pd.DataFrame(sorted(player_names), columns=['player'])
 
-            extras = ["appearances", "starts", "sub_ins", "sub_outs", "played_60", "influence", "creativity", "threat", "ict_index", "total_points", "transfers_balance", "transfers_in", "transfers_out", "bonus", "bps"]
+            extras = ["appearances", "starts", "sub_ins", "sub_outs", "played_60", "influence", "creativity", "threat", "ict_index", "total_points", "transfers_balance", "transfers_in", "transfers_out", "bonus", "bps", "value"]
             
             plyr_stats_df = plyr_stats_df.reindex(columns=plyr_column_names+extras, fill_value=0)
             
@@ -316,7 +316,10 @@ class PlayerData:
                             for column in extras[5:]:
                                 value = fpl_data.loc[fpl_fltr, column].values
                                 if len(value) == 1:
-                                    data[squad]["player_stats"].loc[filtr, column] += float(value)
+                                    if column != 'value':
+                                        data[squad]["player_stats"].loc[filtr, column] += float(value)
+                                    else:
+                                        data[squad]["player_stats"].loc[filtr, column] = float(value)
                     
                     # GOALKEEPER STATS
                     gk_squad_stats_df = pd.read_csv(f"{path}/{squad} gk_stats.csv")
@@ -466,19 +469,19 @@ class PlayerData:
         for key, value in data.items():
             if key not in ['teams_stats', 'played_fixtures']:
                 total_aerials = value["player_stats"]["aerials_lost"] + value["player_stats"]["aerials_won"]
-                value["player_stats"]["aerials_won_pct"] = (value["player_stats"]["aerials_won"] / total_aerials) * 100
+                value["player_stats"]["aerials_won_pct"] = (value["player_stats"]["aerials_won"] / total_aerials)
 
                 dribble_tackles = value["player_stats"]["dribble_tackles"] + value["player_stats"]["dribbled_past"]
-                value["player_stats"]["dribble_tackles_pct"] = (value["player_stats"]["dribble_tackles"] / dribble_tackles) * 100
+                value["player_stats"]["dribble_tackles_pct"] = (value["player_stats"]["dribble_tackles"] / dribble_tackles)
 
-                value["player_stats"]['dribbles_completed_pct'] = (value["player_stats"]['dribbles_completed'] / value["player_stats"]['dribbles']) * 100
+                value["player_stats"]['dribbles_completed_pct'] = (value["player_stats"]['dribbles_completed'] / value["player_stats"]['dribbles'])
 
-                value["player_stats"]['passes_pct'] = (value["player_stats"]['passes_completed'] / value["player_stats"]['passes']) * 100
-                value["player_stats"]['passes_pct_medium'] = (value["player_stats"]['passes_completed_medium'] / value["player_stats"]['passes_medium']) * 100
-                value["player_stats"]['passes_pct_long'] = (value["player_stats"]['passes_completed_long'] / value["player_stats"]['passes_long']) * 100
+                value["player_stats"]['passes_pct'] = (value["player_stats"]['passes_completed'] / value["player_stats"]['passes'])
+                value["player_stats"]['passes_pct_medium'] = (value["player_stats"]['passes_completed_medium'] / value["player_stats"]['passes_medium'])
+                value["player_stats"]['passes_pct_long'] = (value["player_stats"]['passes_completed_long'] / value["player_stats"]['passes_long'])
 
-                value["player_stats"]['passes_received_pct'] = (value["player_stats"]['passes_received'] / value["player_stats"]['pass_targets']) * 100
-                value["player_stats"]['pressure_regain_pct'] = (value["player_stats"]['pressure_regains'] / value["player_stats"]['pressures']) * 100
+                value["player_stats"]['passes_received_pct'] = (value["player_stats"]['passes_received'] / value["player_stats"]['pass_targets'])
+                value["player_stats"]['pressure_regain_pct'] = (value["player_stats"]['pressure_regains'] / value["player_stats"]['pressures'])
 
                 value["player_stats"].fillna(0, inplace=True)
 
