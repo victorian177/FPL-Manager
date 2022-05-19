@@ -244,7 +244,10 @@ class PlayerData:
             fpl_data = pd.read_csv(f"data/Fantasy Premier League/20{self.season}-{self.season + 1} gws/gw{gameweek}.csv", encoding="ISO-8859-1")
             if self.season >= 18:
                 names = [name.split("_") for name in list(fpl_data["name"])]
-                names = [n[0] + n[1] for n in names]
+                names = [n[0] + ' ' + n[1] for n in names]
+                fpl_data["name"] = names
+            else:
+                names = [name.replace("_", ' ') for name in list(fpl_data["name"])]
                 fpl_data["name"] = names
 
             path = f"data/Premier League/reports/20{self.season}-20{self.season + 1}/{squads[0]} v {squads[1]}"
