@@ -106,6 +106,8 @@ class PlayerData:
             "home_form": [],
             "away_form": [],
             "cleansheets": 0,
+            "home_cleansheets": 0,
+            "away_cleansheets": 0,
             "number_of_players": 0,
             "active_players": 0,
             "goals_for": 0,
@@ -384,6 +386,7 @@ class PlayerData:
                         data["teams_stats"].loc[tm_filtr, "goals_for"] += int(score[0])
                         data["teams_stats"].loc[tm_filtr, "goals_against"] += int(score[1])
                         data["teams_stats"].loc[tm_filtr, "cleansheets"] = data["teams_stats"].loc[tm_filtr, "cleansheets"] + 1 if int(score[1]) == 0 else data["teams_stats"].loc[tm_filtr, "cleansheets"]
+                        data["teams_stats"].loc[tm_filtr, "home_cleansheets"] = data["teams_stats"].loc[tm_filtr, "home_cleansheets"] + 1 if int(score[1]) == 0 else data["teams_stats"].loc[tm_filtr, "home_cleansheets"]
                         data["teams_stats"].loc[tm_filtr, "home_goals_for"] += int(score[0])
                         data["teams_stats"].loc[tm_filtr, "home_goals_against"] += int(score[1])
 
@@ -417,6 +420,7 @@ class PlayerData:
                         data["teams_stats"].loc[tm_filtr, "goals_for"] += int(score[1])
                         data["teams_stats"].loc[tm_filtr, "goals_against"] += int(score[0])
                         data["teams_stats"].loc[tm_filtr, "cleansheets"] = data["teams_stats"].loc[tm_filtr, "cleansheets"] + 1 if int(score[0]) == 0 else data["teams_stats"].loc[tm_filtr, "cleansheets"]
+                        data["teams_stats"].loc[tm_filtr, "away_cleansheets"] = data["teams_stats"].loc[tm_filtr, "away_cleansheets"] + 1 if int(score[1]) == 0 else data["teams_stats"].loc[tm_filtr, "away_cleansheets"]
                         data["teams_stats"].loc[tm_filtr, "away_goals_for"] += int(score[1])
                         data["teams_stats"].loc[tm_filtr, "away_goals_against"] += int(score[0])
 
