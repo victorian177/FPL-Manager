@@ -105,6 +105,7 @@ class PlayerData:
             "form": [],
             "home_form": [],
             "away_form": [],
+            "cleansheets": 0,
             "number_of_players": 0,
             "active_players": 0,
             "goals_for": 0,
@@ -382,6 +383,7 @@ class PlayerData:
                     if is_home:
                         data["teams_stats"].loc[tm_filtr, "goals_for"] += int(score[0])
                         data["teams_stats"].loc[tm_filtr, "goals_against"] += int(score[1])
+                        data["teams_stats"].loc[tm_filtr, "cleansheets"] = data["teams_stats"].loc[tm_filtr, "cleansheets"] + 1 if int(score[1]) == 0 else data["teams_stats"].loc[tm_filtr, "cleansheets"]
                         data["teams_stats"].loc[tm_filtr, "home_goals_for"] += int(score[0])
                         data["teams_stats"].loc[tm_filtr, "home_goals_against"] += int(score[1])
 
@@ -390,8 +392,7 @@ class PlayerData:
                             data["teams_stats"].loc[tm_filtr, "wins"] += 1
                             data["teams_stats"].loc[tm_filtr, "home_wins"] += 1
                             data["teams_stats"].loc[tm_filtr, "pts"] += 3
-                            data["teams_stats"].loc[tm_filtr, "home_pts"] += 3
-                            
+                            data["teams_stats"].loc[tm_filtr, "home_pts"] += 3                            
 
                         elif score[0] == score[1]:
                             result = 'D'
@@ -415,6 +416,7 @@ class PlayerData:
                     else:
                         data["teams_stats"].loc[tm_filtr, "goals_for"] += int(score[1])
                         data["teams_stats"].loc[tm_filtr, "goals_against"] += int(score[0])
+                        data["teams_stats"].loc[tm_filtr, "cleansheets"] = data["teams_stats"].loc[tm_filtr, "cleansheets"] + 1 if int(score[0]) == 0 else data["teams_stats"].loc[tm_filtr, "cleansheets"]
                         data["teams_stats"].loc[tm_filtr, "away_goals_for"] += int(score[1])
                         data["teams_stats"].loc[tm_filtr, "away_goals_against"] += int(score[0])
 
@@ -458,7 +460,7 @@ class PlayerData:
             
             # team totals: columns are summed and added to the 'team_stats'
             team_totals = {}
-            stats_total = ["cards_yellow", "cards_red","cards_yellow_red",]
+            stats_total = ["cards_yellow", "cards_red", "cards_yellow_red"]
             
             for team in team_list:
                 for stat in stats_total:
