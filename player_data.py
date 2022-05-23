@@ -1,8 +1,6 @@
 import pandas as pd
 import json
 
-from soupsieve import match
-
 class PlayerData:
     def __init__(self, season):
         if season not in range(17, 22):
@@ -211,7 +209,8 @@ class PlayerData:
             player_names = self.players[team]["outfield"] + self.players[team]["goalkeeper"]
             plyr_stats_df = pd.DataFrame(sorted(player_names), columns=['player'])
 
-            extras = ["appearances", "starts", "sub_ins", "sub_outs", "played_60", "influence", "creativity", "threat", "ict_index", "total_points", "transfers_balance", "transfers_in", "transfers_out", "bonus", "bps", "value"]
+            extras = ["appearances", "starts", "sub_ins", "sub_outs", "played_60", "influence", "creativity", "threat", "ict_index", "total_points", "transfers_balance", "transfers_in", "transfers_out", "bonus", "bps", "value", "value_change"]
+            prev_value = 0
             
             plyr_stats_df = plyr_stats_df.reindex(columns=plyr_column_names+extras, fill_value=0)
             
@@ -327,7 +326,9 @@ class PlayerData:
                                     if column != 'value':
                                         data[squad]["player_stats"].loc[filtr, column] += float(value)
                                     else:
+                                        data[squad]["player_stats"].loc[filtr, 'value_change'] += value - prev_value
                                         data[squad]["player_stats"].loc[filtr, column] = float(value)
+                                        prev_value = value
                     
                     # GOALKEEPER STATS
                     gk_squad_stats_df = pd.read_csv(f"{path}/{squad} gk_stats.csv")
