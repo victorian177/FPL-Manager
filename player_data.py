@@ -210,7 +210,6 @@ class PlayerData:
             plyr_stats_df = pd.DataFrame(sorted(player_names), columns=['player'])
 
             extras = ["appearances", "starts", "sub_ins", "sub_outs", "played_60", "influence", "creativity", "threat", "ict_index", "total_points", "transfers_balance", "transfers_in", "transfers_out", "bonus", "bps", "value", "value_change"]
-            prev_value = 0
             
             plyr_stats_df = plyr_stats_df.reindex(columns=plyr_column_names+extras, fill_value=0)
             
@@ -315,18 +314,18 @@ class PlayerData:
                                                 positions[p] = 1
                                             else:
                                                 positions[p] += 1
-
-                                        # data[squad]["player_stats"].loc[filtr, column] = positions
                             
                             data[squad]["player_stats"].loc[filtr, "appearances"] += 1
 
-                            for column in extras[5:]:
+                            prev_value = 0.0
+                            for column in extras[5:-1]:
+
                                 value = fpl_data.loc[fpl_fltr, column].values
                                 if len(value) == 1:
                                     if column != 'value':
                                         data[squad]["player_stats"].loc[filtr, column] += float(value)
                                     else:
-                                        data[squad]["player_stats"].loc[filtr, 'value_change'] += value - prev_value
+                                        data[squad]["player_stats"].loc[filtr, 'value_change'] += float(value) - prev_value
                                         data[squad]["player_stats"].loc[filtr, column] = float(value)
                                         prev_value = value
                     
