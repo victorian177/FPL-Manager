@@ -496,6 +496,6 @@ class PlayerData:
 
                 value["player_stats"].fillna(0, inplace=True)
 
-                value["player_stats"]["value_change"] = np.where(value["player_stats"]["value_change"] > 2.0, 0, value["player_stats"]["value_change"])
+                value["player_stats"]["value_change"] = np.where(value["player_stats"]["value_change"] > 30, 0, value["player_stats"]["value_change"])
 
         return data
