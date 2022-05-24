@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import json
 
 class PlayerData:
@@ -317,17 +318,16 @@ class PlayerData:
                             
                             data[squad]["player_stats"].loc[filtr, "appearances"] += 1
 
-                            prev_value = 0.0
                             for column in extras[5:-1]:
-
                                 value = fpl_data.loc[fpl_fltr, column].values
                                 if len(value) == 1:
                                     if column != 'value':
                                         data[squad]["player_stats"].loc[filtr, column] += float(value)
                                     else:
-                                        data[squad]["player_stats"].loc[filtr, 'value_change'] += float(value) - prev_value
+                                        prev_value = float(data[squad]["player_stats"].loc[filtr, column].values)
+                                        data[squad]["player_stats"].loc[filtr, 'value_change'] = (float(value) - prev_value)
                                         data[squad]["player_stats"].loc[filtr, column] = float(value)
-                                        prev_value = value
+                            
                     
                     # GOALKEEPER STATS
                     gk_squad_stats_df = pd.read_csv(f"{path}/{squad} gk_stats.csv")
@@ -495,5 +495,7 @@ class PlayerData:
                 value["player_stats"]['pressure_regain_pct'] = (value["player_stats"]['pressure_regains'] / value["player_stats"]['pressures'])
 
                 value["player_stats"].fillna(0, inplace=True)
+
+                value["player_stats"]["value_change"] = np.where(value["player_stats"]["value_change"] > 2.0, 0, value["player_stats"]["value_change"])
 
         return data
