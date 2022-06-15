@@ -202,20 +202,20 @@ def match_reports(season):
 
                 substitutes = {}
 
-                substitutes[squad_a] = {}
+                substitutes[squad_a[indx]] = {}
                 for event in home:
                     if event.find("div", class_="event_icon substitute_in") is not None:
                         playrs =  event.find_all("a")
                         if len(playrs) == 2:
-                            substitutes[squad_a][playrs[0].text] = playrs[1].text
+                            substitutes[squad_a[indx]][playrs[0].text] = playrs[1].text
 
 
-                substitutes[squad_b] = {}
+                substitutes[squad_b[indx]] = {}
                 for event in away:
                     if event.find("div", class_="event_icon substitute_in") is not None:
                         playrs =  event.find_all("a")
                         if len(playrs) == 2:
-                            substitutes[squad_b][playrs[0].text] = playrs[1].text
+                            substitutes[squad_b[indx]][playrs[0].text] = playrs[1].text
 
                 match_info["substitutes"] = substitutes
 

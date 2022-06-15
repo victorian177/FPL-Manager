@@ -1,2 +1,6 @@
 data
 .venv
+eda
+.gitignore
+__pycache__
+datasets
