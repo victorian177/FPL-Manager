@@ -35,7 +35,7 @@ def column_creator(df: pd.DataFrame, expression: str):
     df[column_name].replace([np.nan, np.inf], 0, inplace=True)
 
 
-seasons = [f'{i}/{i + 1}' for i in range(17, 19)]
+seasons = [f'{i}/{i + 1}' for i in range(17, 21)]
 
 # Dataset columns
 columns = {'player_stats': [
@@ -191,8 +191,8 @@ extra_team_columns = [
 ]
 
 outfield_outcomes = [
-    'ONE GOAL', 'TWO GOALS', 'THREE GOALS', 'THREE GOALS+',
-    'ONE ASSIST', 'TWO ASSISTS', 'THREE ASSISTS', 'THREE ASSISTS+',
+    'ONE_GOAL', 'TWO_GOALS', 'THREE_GOALS', 'THREE_GOALS+',
+    'ONE_ASSIST', 'TWO_ASSISTS', 'THREE_ASSISTS', 'THREE_ASSISTS+',
     'PLAYED_60', 'PLAYED_60+',
     'CLEANSHEET', 'CONCEDED_2_GOALS+',
     'PENALTY_MISS', 'OWN_GOAL'
@@ -225,14 +225,15 @@ def dataset_generator(gameweek_range, threshold):
               for key, value in all_data.items()}
 
     for season in seasons:
-        for exprssn in extra_team_columns:
-            column_creator(df=X_prep[season]
-                           ['teams_stats'], expression=exprssn)
-
         for team in teams[season]:
             for exprssn in extra_player_columns:
                 column_creator(df=X_prep[season][team]
                                ['player_stats'], expression=exprssn)
+
+    for season in seasons:
+        for exprssn in extra_team_columns:
+            column_creator(df=X_prep[season]
+                           ['teams_stats'], expression=exprssn)
 
     for season in seasons:
         for team in teams[season]:
@@ -268,7 +269,7 @@ def dataset_generator(gameweek_range, threshold):
         filtered_players[season] = {}
         for team in teams[season]:
             filtr = (X_prep[season][team]['player_stats']
-                     ["minutes"] > threshold)
+                     ["minutes"] >= threshold)
             X_prep[season][team]['player_stats'] = X_prep[season][team]['player_stats'][filtr]
             X_prep[season][team]['player_stats'].reset_index(
                 inplace=True, drop=True)
@@ -293,11 +294,12 @@ def dataset_generator(gameweek_range, threshold):
             t_col_stats = t_stats[t_stats['team_name']
                                   == team][columns['teams_stats']]
             num_of_plyrs = len(filtered_players[season][team])
-            t_col_stats.loc[t_col_stats.index.repeat(num_of_plyrs - 1)]
+            t_col_stats = t_col_stats.loc[t_col_stats.index.repeat(
+                num_of_plyrs)]
             t_col_stats.reset_index(inplace=True, drop=True)
 
             X[season][team] = pd.concat(
-                [X_prep[season][team]["player_stats"][cols], t_col_stats])
+                [X_prep[season][team]["player_stats"][cols], t_col_stats], axis=1)
 
     # Generating y part of dataset
     y_prep = {key: value.data_lister(gameweek_range=gameweek_range[1])
@@ -323,33 +325,34 @@ def dataset_generator(gameweek_range, threshold):
         for team in teams[season]:
             for player in filtered_players[season][team]:
                 stats = y_prep[season][team]['player_stats'].copy()
-                row = stats.loc[stats['player'] == player]
+                row = stats[stats['player'] == player]
 
-                idx = y[season][team].loc[y[season]
-                                          [team]['player'] == player].index[0]
+                if not row.empty:
+                    idx = y[season][team].loc[y[season]
+                                              [team]['player'] == player].index[0]
 
-                y[season][team].loc[idx,
-                                    'ONE_GOAL'] = True if row['goals'].values[0] >= 1 else False
-                y[season][team].loc[idx,
-                                    'TWO_GOALS'] = True if row['goals'].values[0] >= 2 else False
-                y[season][team].loc[idx,
-                                    'THREE_GOALS'] = True if row['goals'].values[0] >= 3 else False
-                y[season][team].loc[idx,
-                                    'THREE_GOALS+'] = True if row['goals'].values[0] > 3 else False
+                    y[season][team].loc[idx,
+                                        'ONE_GOAL'] = True if row['goals'].values[0] >= 1 else False
+                    y[season][team].loc[idx,
+                                        'TWO_GOALS'] = True if row['goals'].values[0] >= 2 else False
+                    y[season][team].loc[idx,
+                                        'THREE_GOALS'] = True if row['goals'].values[0] >= 3 else False
+                    y[season][team].loc[idx,
+                                        'THREE_GOALS+'] = True if row['goals'].values[0] > 3 else False
 
-                y[season][team].loc[idx,
-                                    'ONE_ASSIST'] = True if row['assists'].values[0] >= 1 else False
-                y[season][team].loc[idx,
-                                    'TWO_ASSISTS'] = True if row['assists'].values[0] >= 2 else False
-                y[season][team].loc[idx,
-                                    'THREE_ASSISTS'] = True if row['assists'].values[0] >= 3 else False
-                y[season][team].loc[idx,
-                                    'THREE_ASSISTS+'] = True if row['assists'].values[0] > 3 else False
+                    y[season][team].loc[idx,
+                                        'ONE_ASSIST'] = True if row['assists'].values[0] >= 1 else False
+                    y[season][team].loc[idx,
+                                        'TWO_ASSISTS'] = True if row['assists'].values[0] >= 2 else False
+                    y[season][team].loc[idx,
+                                        'THREE_ASSISTS'] = True if row['assists'].values[0] >= 3 else False
+                    y[season][team].loc[idx,
+                                        'THREE_ASSISTS+'] = True if row['assists'].values[0] > 3 else False
 
-                y[season][team].loc[idx,
-                                    'PLAYED_60'] = True if row['minutes'].values[0] >= 60 else False
-                y[season][team].loc[idx,
-                                    'PLAYED_60+'] = True if row['minutes'].values[0] > 60 else False
+                    y[season][team].loc[idx,
+                                        'PLAYED_60'] = True if row['minutes'].values[0] >= 60 else False
+                    y[season][team].loc[idx,
+                                        'PLAYED_60+'] = True if row['minutes'].values[0] > 60 else False
 
     # Joining of X, y parts of datasets
     datasets_prep = {}
@@ -357,7 +360,7 @@ def dataset_generator(gameweek_range, threshold):
         datasets_prep[season] = {}
         for team in teams[season]:
             datasets_prep[season][team] = pd.concat(
-                [X[season][team], y[season][team][outfield_outcomes[:10]]])  # first ten stats in outfield outcomes
+                [X[season][team], y[season][team][outfield_outcomes[:10]]], axis=1)  # first ten stats in outfield outcomes
 
     # Concatenating of all datasets to form one dataset
     datasets = []
@@ -366,4 +369,5 @@ def dataset_generator(gameweek_range, threshold):
             datasets.append(datasets_prep[season][team])
 
     df = pd.concat(datasets, ignore_index=True)
-    df.to_csv('datasets/X_.csv', index=False)
+    df.to_csv(
+        f'datasets/dataset_{gameweek_range[0]}_to_{gameweek_range[1]}.csv', index=False)
