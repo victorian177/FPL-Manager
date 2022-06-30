@@ -40,6 +40,7 @@ seasons = [f'{i}/{i + 1}' for i in range(17, 21)]
 # Dataset columns
 columns = {'player_stats': [
     # Player stats
+    'appearances',
     'age',
     'place',
     'value',
