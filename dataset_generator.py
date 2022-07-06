@@ -1,7 +1,7 @@
-from matplotlib.pyplot import table
-from player_data import PlayerData
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+from player_data import PlayerData
 
 # Creates columns based on formula specified
 
@@ -192,24 +192,22 @@ extra_team_columns = [
 ]
 
 outfield_outcomes = [
-    'ONE_GOAL', 'TWO_GOALS', 'THREE_GOALS', 'THREE_GOALS+',
-    'ONE_ASSIST', 'TWO_ASSISTS', 'THREE_ASSISTS', 'THREE_ASSISTS+',
-    'PLAYED_60', 'PLAYED_60+',
-    'CLEANSHEET', 'CONCEDED_2_GOALS+',
-    'PENALTY_MISS', 'OWN_GOAL'
+    'GOALS', 'APPS', 'ASSISTS', 'PLAYED_60+',
+    'CLEANSHEETS', 'CONCEDED_2_GOALS+',
+    'PENALTY_MISSES', 'OWN_GOALS'
 ]
 
 goalkeep_outcomes = [
-    'CLEANSHEET', 'THREE SAVES+', 'PENALTY_SAVE'
+    'CLEANSHEETS', 'THREE_SAVES+', 'PENALTY_SAVES'
 ]
 
 discipline_outcome = [
-    'YELLOW CARD',
-    'RED CARD'
+    'YELLOW_CARDS',
+    'RED_CARDS'
 ]
 
 
-def dataset_generator(gameweek_range, threshold):
+def dataset_generator(gameweek_range, threshold, target):
     all_data = {season: PlayerData(
         int(season.split('/')[0])) for season in seasons}
 
@@ -303,7 +301,7 @@ def dataset_generator(gameweek_range, threshold):
                 [X_prep[season][team]["player_stats"][cols], t_col_stats], axis=1)
 
     # Generating y part of dataset
-    y_prep = {key: value.data_lister(gameweek_range=gameweek_range[1])
+    y_prep = {key: value.data_lister(gameweek_range=[gameweek_range[1], gameweek_range[1]+target])
               for key, value in all_data.items()}
 
     y = {}
@@ -313,13 +311,9 @@ def dataset_generator(gameweek_range, threshold):
             y[season][team] = pd.DataFrame(
                 filtered_players[season][team], columns=["player"])
             y[season][team] = y[season][team].reindex(
-                columns=["player"]+outfield_outcomes[:10], fill_value=False)  # initialisation of outcomes to false
+                columns=["player"]+outfield_outcomes[:4], fill_value=0)  # initialisation of outcomes to 0
 
-    # 'ONE GOAL', 'TWO GOALS', 'THREE GOALS', 'THREE GOALS+',
-    # 'ONE ASSIST', 'TWO ASSISTS', 'THREE ASSISTS', 'THREE ASSISTS+',
-    # 'PLAYED_60', 'PLAYED_60+',
-    # 'CLEANSHEET', 'CONCEDED_2_GOALS+',
-    # 'PENALTY_MISS', 'OWN_GOAL'
+    # 'GOALS', 'ASSISTS', 'APPS', 'PLAYED_60+'
 
     # Setting of outcomes as True if certain criteria are met or False otherwise
     for season in seasons:
@@ -332,28 +326,11 @@ def dataset_generator(gameweek_range, threshold):
                     idx = y[season][team].loc[y[season]
                                               [team]['player'] == player].index[0]
 
-                    y[season][team].loc[idx,
-                                        'ONE_GOAL'] = True if row['goals'].values[0] >= 1 else False
-                    y[season][team].loc[idx,
-                                        'TWO_GOALS'] = True if row['goals'].values[0] >= 2 else False
-                    y[season][team].loc[idx,
-                                        'THREE_GOALS'] = True if row['goals'].values[0] >= 3 else False
-                    y[season][team].loc[idx,
-                                        'THREE_GOALS+'] = True if row['goals'].values[0] > 3 else False
-
-                    y[season][team].loc[idx,
-                                        'ONE_ASSIST'] = True if row['assists'].values[0] >= 1 else False
-                    y[season][team].loc[idx,
-                                        'TWO_ASSISTS'] = True if row['assists'].values[0] >= 2 else False
-                    y[season][team].loc[idx,
-                                        'THREE_ASSISTS'] = True if row['assists'].values[0] >= 3 else False
-                    y[season][team].loc[idx,
-                                        'THREE_ASSISTS+'] = True if row['assists'].values[0] > 3 else False
-
-                    y[season][team].loc[idx,
-                                        'PLAYED_60'] = True if row['minutes'].values[0] >= 60 else False
-                    y[season][team].loc[idx,
-                                        'PLAYED_60+'] = True if row['minutes'].values[0] > 60 else False
+                    y[season][team].loc[idx, 'GOALS'] += int(row['goals'])
+                    y[season][team].loc[idx, 'APPS'] += int(row['appearances'])
+                    y[season][team].loc[idx, 'ASSISTS'] += int(row['assists'])
+                    if int(row['minutes']) > 60:
+                        y[season][team].loc[idx, 'PLAYED_60+'] += 1
 
     # Joining of X, y parts of datasets
     datasets_prep = {}
@@ -361,7 +338,7 @@ def dataset_generator(gameweek_range, threshold):
         datasets_prep[season] = {}
         for team in teams[season]:
             datasets_prep[season][team] = pd.concat(
-                [X[season][team], y[season][team][outfield_outcomes[:10]]], axis=1)  # first ten stats in outfield outcomes
+                [X[season][team], y[season][team][outfield_outcomes[:4]]], axis=1)  # first ten stats in outfield outcomes
 
     # Concatenating of all datasets to form one dataset
     datasets = []
@@ -371,4 +348,4 @@ def dataset_generator(gameweek_range, threshold):
 
     df = pd.concat(datasets, ignore_index=True)
     df.to_csv(
-        f'datasets/dataset_{gameweek_range[0]}_to_{gameweek_range[1]}.csv', index=False)
+        f'datasets/dataset_{gameweek_range[0]}_to_{gameweek_range[1]}_{target}.csv', index=False)

@@ -1,12 +1,126 @@
-from bs4 import BeautifulSoup
-import pandas as pd
-import os
 import json
+import os
+
+import pandas as pd
 import requests
+from bs4 import BeautifulSoup
 
 # All data gotten here is from scraping the https://fbref.com website for Premier League
 
 SEASON_RANGE = range(17, 22)
+COLUMNS = ['player',
+           'position',
+           'age',
+           'minutes',
+           'cards_yellow',
+           'cards_red',
+           'cards_yellow_red',
+           'fouls',
+           'fouled',
+           'offsides',
+           'pens_won',
+           'pens_conceded',
+           'own_goals',
+           'ball_recoveries',
+           'aerials_won',
+           'aerials_lost',
+           'aerials_won_pct',
+           'passes_completed',
+           'passes',
+           'passes_pct',
+           'passes_total_distance',
+           'passes_progressive_distance',
+           'passes_completed_short',
+           'passes_short',
+           'passes_pct_short',
+           'passes_completed_medium',
+           'passes_medium',
+           'passes_pct_medium',
+           'passes_completed_long',
+           'passes_long',
+           'passes_pct_long',
+           'assisted_shots',
+           'passes_into_final_third',
+           'passes_into_penalty_area',
+           'crosses_into_penalty_area',
+           'progressive_passes',
+           'passes_live',
+           'passes_dead',
+           'passes_free_kicks',
+           'through_balls',
+           'passes_pressure',
+           'passes_switches',
+           'crosses',
+           'corner_kicks',
+           'passes_ground',
+           'passes_low',
+           'passes_high',
+           'passes_head',
+           'throw_ins',
+           'passes_other_body',
+           'passes_offsides',
+           'passes_oob',
+           'passes_intercepted',
+           'passes_blocked',
+           'tackles',
+           'tackles_won',
+           'tackles_def_3rd',
+           'tackles_mid_3rd',
+           'tackles_att_3rd',
+           'dribble_tackles',
+           'dribbles_vs',
+           'dribble_tackles_pct',
+           'dribbled_past',
+           'pressures',
+           'pressure_regains',
+           'pressure_regain_pct',
+           'pressures_def_3rd',
+           'pressures_mid_3rd',
+           'pressures_att_3rd',
+           'blocks',
+           'blocked_shots',
+           'blocked_shots_saves',
+           'blocked_passes',
+           'interceptions',
+           'tackles_interceptions',
+           'clearances',
+           'errors',
+           'goals',
+           'assists',
+           'pens_made',
+           'pens_att',
+           'shots_total',
+           'shots_on_target',
+           'xg',
+           'npxg',
+           'xa',
+           'sca',
+           'gca',
+           'touches',
+           'touches_def_pen_area',
+           'touches_def_3rd',
+           'touches_mid_3rd',
+           'touches_att_3rd',
+           'touches_att_pen_area',
+           'touches_live_ball',
+           'dribbles_completed',
+           'dribbles',
+           'dribbles_completed_pct',
+           'players_dribbled_past',
+           'carries',
+           'carry_distance',
+           'carry_progressive_distance',
+           'progressive_carries',
+           'carries_into_final_third',
+           'carries_into_penalty_area',
+           'miscontrols',
+           'dispossessed',
+           'pass_targets',
+           'passes_received',
+           'passes_received_pct',
+           'progressive_passes_received',
+           ]
+
 
 def folder_create(folder_path):
     try:
@@ -15,6 +129,7 @@ def folder_create(folder_path):
         return False
     else:
         return True
+
 
 def file_create(file_details, file_name, file_path):
     try:
@@ -57,19 +172,20 @@ def players_with_team_position(season):
     PREFIX = "https://fbref.com"
 
     plyrs_tm_pstn = {}
-    
+
     for team, link in team_links.items():
         plyrs_tm_pstn[team] = {
             "outfield": [],
             "goalkeeper": []
-            }
+        }
         response = requests.get(PREFIX + link)
         soup = BeautifulSoup(response.text, "html.parser")
         trows = soup.find("tbody").find_all("tr")
         for row in trows:
             if row.get("class") is None:
                 player = row.find("th").text
-                outfield = False if row.find("td", {"data-stat": "position"}).text == "GK" else True
+                outfield = False if row.find(
+                    "td", {"data-stat": "position"}).text == "GK" else True
                 if outfield:
                     plyrs_tm_pstn[team]["outfield"].append(player)
                 else:
@@ -77,12 +193,14 @@ def players_with_team_position(season):
 
     return plyrs_tm_pstn
 
+
 def score_and_fixtures(season):
     """Return scores and fixtures belonging a particular season"""
 
     if season not in SEASON_RANGE:
-        raise Exception(f"Season should range from {SEASON_RANGE.start} to {SEASON_RANGE.stop - 1} representing 20{SEASON_RANGE.start}-20{SEASON_RANGE.start + 1} to 20{SEASON_RANGE.stop - 1}-20{SEASON_RANGE.stop}.")
-        
+        raise Exception(
+            f"Season should range from {SEASON_RANGE.start} to {SEASON_RANGE.stop - 1} representing 20{SEASON_RANGE.start}-20{SEASON_RANGE.start + 1} to 20{SEASON_RANGE.stop - 1}-20{SEASON_RANGE.stop}.")
+
     else:
         SEASONS = {
             "2021-2022": "https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures",
@@ -97,14 +215,15 @@ def score_and_fixtures(season):
         soup = BeautifulSoup(response.text, "html.parser")
         trows = soup.find("tbody").find_all("tr")
 
-        headers = ["gameweek", "date", "squad_a", "score", "squad_b", "match_report"]
+        headers = ["gameweek", "date", "squad_a",
+                   "score", "squad_b", "match_report"]
         match_reports = {}
 
         for i in headers:
             match_reports[i] = []
         for row in trows:
             gmwk = row.find("th")
-            if gmwk.text not in  ["", "Wk"]:
+            if gmwk.text not in ["", "Wk"]:
                 match_reports["gameweek"].append(gmwk.text)
                 match_stats = row.find_all("td")
                 for stat in match_stats:
@@ -113,22 +232,20 @@ def score_and_fixtures(season):
                             match_reports[stat["data-stat"]].append(stat.text)
                         else:
                             href = stat.find("a")
-                            link = href["href"].split("?")[0] if href != None else None
+                            link = href["href"].split(
+                                "?")[0] if href != None else None
                             match_reports["match_report"].append(link)
         scores_and_fixtures_df = pd.DataFrame(match_reports)
-        scores_and_fixtures_df.to_csv(f"data/Premier League/scores and fixtures/20{season}-20{season + 1} PL Scores & Fixtures.csv", index=False)
+        scores_and_fixtures_df.to_csv(
+            f"data/Premier League/scores and fixtures/20{season}-20{season + 1} PL Scores & Fixtures.csv", index=False)
 
-def substitutes(link, squad_a, squad_b):
-    response = requests.get(link)
-    soup = BeautifulSoup(response.text, "html.parser")
-    
-        
+
 def match_reports(season):
     """Downloading match report for matches played in a particular season"""
 
     if season not in range(17, 22):
         print("Season should range from 17 to 21 representing 2017-2018 to 2021-2022.")
-        
+
     else:
         # Player stats header information
         with open("data/Premier League/header information/headers.json", encoding="utf-8") as hdr:
@@ -145,7 +262,8 @@ def match_reports(season):
         sh_header_dictionary = sh_header_dictionary["List"]
 
         # Initialise scores and fixtures belonging to a season and removing all unplayed matches
-        scores_and_fixtures_df = pd.read_csv(f"data/Premier League/scores and fixtures/20{season}-20{season + 1} PL Scores & Fixtures.csv")
+        scores_and_fixtures_df = pd.read_csv(
+            f"data/Premier League/scores and fixtures/20{season}-20{season + 1} PL Scores & Fixtures.csv")
         scores_and_fixtures_df.dropna(inplace=True)
 
         squad_a = list(scores_and_fixtures_df["squad_a"])
@@ -190,7 +308,8 @@ def match_reports(season):
 
                 match_info["formations"] = formations
 
-                trows = soup.find("div", {"id": "team_stats"}).find("table").find_all("tr")
+                trows = soup.find("div", {"id": "team_stats"}).find(
+                    "table").find_all("tr")
 
                 possession = trows[2].text.replace("\n", "").split("%")[:-1]
                 match_info["possession"] = possession
@@ -205,21 +324,23 @@ def match_reports(season):
                 substitutes[squad_a[indx]] = {}
                 for event in home:
                     if event.find("div", class_="event_icon substitute_in") is not None:
-                        playrs =  event.find_all("a")
+                        playrs = event.find_all("a")
                         if len(playrs) == 2:
-                            substitutes[squad_a[indx]][playrs[0].text] = playrs[1].text
-
+                            substitutes[squad_a[indx]
+                                        ][playrs[0].text] = playrs[1].text
 
                 substitutes[squad_b[indx]] = {}
                 for event in away:
                     if event.find("div", class_="event_icon substitute_in") is not None:
-                        playrs =  event.find_all("a")
+                        playrs = event.find_all("a")
                         if len(playrs) == 2:
-                            substitutes[squad_b[indx]][playrs[0].text] = playrs[1].text
+                            substitutes[squad_b[indx]
+                                        ][playrs[0].text] = playrs[1].text
 
                 match_info["substitutes"] = substitutes
 
-                file_create(file_details=match_info, file_path=path, file_name="match_info.json")
+                file_create(file_details=match_info, file_path=path,
+                            file_name="match_info.json")
 
                 # Shots stats based on column names specified in shots stats header information
                 sh_match_stats_table = {s: [] for s in sh_header_dictionary}
@@ -231,13 +352,14 @@ def match_reports(season):
                     for datum in tdata:
                         if datum["data-stat"] in list(sh_match_stats_table.keys()):
                             if datum.find("a") is not None:
-                                sh_match_stats_table[datum["data-stat"]].append(datum.find("a").text)
+                                sh_match_stats_table[datum["data-stat"]
+                                                     ].append(datum.find("a").text)
                             else:
-                                sh_match_stats_table[datum["data-stat"]].append(datum.text)
+                                sh_match_stats_table[datum["data-stat"]
+                                                     ].append(datum.text)
 
                 sh_stat_df = pd.DataFrame(sh_match_stats_table)
                 sh_stat_df.to_csv(f"{path}/shot_stats.csv", index=False)
-
 
                 # Player and goalkeeper data based on column names specified in player and goalkeeper stats header information
                 teams = list(match_info["formations"].keys())
@@ -258,7 +380,8 @@ def match_reports(season):
                         5: ["misc", "defense"]
                     }
 
-                    stats_tables = soup.find_all(text=f"{team} Player Stats Table")
+                    stats_tables = soup.find_all(
+                        text=f"{team} Player Stats Table")
 
                     for indx in range(len(stats_tables)):
                         stat_table = stats_tables[indx].parent.parent
@@ -266,61 +389,78 @@ def match_reports(season):
                         for row in trows:
                             name = row.find("th").find("a").text
                             if name not in match_stats_table[team]["misc"]["player"]:
-                                match_stats_table[team]["misc"]["player"].append(name)
-                            
-                            if "misc" in STATS_KEY[indx]: 
+                                match_stats_table[team]["misc"]["player"].append(
+                                    name)
+
+                            if "misc" in STATS_KEY[indx]:
                                 tdata = row.find_all('td')
                                 for datum in tdata:
                                     if datum["data-stat"] in header_dictionary["misc"]:
-                                        match_stats_table[team]["misc"][datum["data-stat"]].append(datum.text)
+                                        match_stats_table[team]["misc"][datum["data-stat"]].append(
+                                            datum.text)
 
                             if "attack" in STATS_KEY[indx]:
                                 tdata = row.find_all('td')
                                 for datum in tdata:
                                     if datum["data-stat"] in header_dictionary["attack"]:
-                                        match_stats_table[team]["attack"][datum["data-stat"]].append(datum.text)
+                                        match_stats_table[team]["attack"][datum["data-stat"]].append(
+                                            datum.text)
 
                             if "passing" in STATS_KEY[indx]:
                                 tdata = row.find_all('td')
                                 for datum in tdata:
                                     if datum["data-stat"] in header_dictionary["passing"]:
-                                        match_stats_table[team]["passing"][datum["data-stat"]].append(datum.text)
+                                        match_stats_table[team]["passing"][datum["data-stat"]].append(
+                                            datum.text)
 
                             if "passing_types" in STATS_KEY[indx]:
                                 tdata = row.find_all('td')
                                 for datum in tdata:
                                     if datum["data-stat"] in header_dictionary["passing_types"]:
-                                        match_stats_table[team]["passing_types"][datum["data-stat"]].append(datum.text)
+                                        match_stats_table[team]["passing_types"][datum["data-stat"]].append(
+                                            datum.text)
 
                             if "defense" in STATS_KEY[indx]:
                                 tdata = row.find_all('td')
                                 for datum in tdata:
                                     if datum["data-stat"] in header_dictionary["defense"]:
-                                        match_stats_table[team]["defense"][datum["data-stat"]].append(datum.text)
+                                        match_stats_table[team]["defense"][datum["data-stat"]].append(
+                                            datum.text)
 
                             if "possession" in STATS_KEY[indx]:
                                 tdata = row.find_all('td')
                                 for datum in tdata:
                                     if datum["data-stat"] in header_dictionary["possession"]:
-                                        match_stats_table[team]["possession"][datum["data-stat"]].append(datum.text)
+                                        match_stats_table[team]["possession"][datum["data-stat"]].append(
+                                            datum.text)
 
                     # Removing of duplicate data from player stats for each team
                     for column in ["position", "age", "minutes", "cards_yellow", "cards_red"]:
-                        column_length = int(len(match_stats_table[team]['misc'][column]) / 2)
+                        column_length = int(
+                            len(match_stats_table[team]['misc'][column]) / 2)
                         match_stats_table[team]['misc'][column] = match_stats_table[team]['misc'][column][:column_length]
-                    
+
                     for column in ["interceptions", "tackles_won"]:
-                        column_length = int(len(match_stats_table[team]['defense'][column]) / 2)
+                        column_length = int(
+                            len(match_stats_table[team]['defense'][column]) / 2)
                         match_stats_table[team]['defense'][column] = match_stats_table[team]['defense'][column][:column_length]
 
-                    for stat in list(match_stats_table[team].keys()):
-                        stat_df = pd.DataFrame(match_stats_table[team][stat])
-                        stat_df.to_csv(f"{path}/{team} {stat}.csv", index=False)
+                    # for stat in list(match_stats_table[team].keys()):
+                    #     stat_df = pd.DataFrame(match_stats_table[team][stat])
+                    #     stat_df.to_csv(f"{path}/{team} {stat}.csv", index=False)
+
+                    stat_dfs = [pd.DataFrame(match_stats_table[team][s])
+                                for s in ['misc', 'passing', 'passing_types', 'defense', 'attack', 'possession']]
+
+                    team_df = pd.concat(stat_dfs, axis=1)
+                    team_df.columns = COLUMNS
+                    team_df.to_csv(f'{path}/{team} stats.csv', index=False)
 
                     gk_match_info = {item: [] for item in gk_header_dictionary}
                     gk_match_stats_table = {team: gk_match_info}
 
-                    gk_stats_table = soup.find(text=f"{team} Goalkeeper Stats Table").parent.parent
+                    gk_stats_table = soup.find(
+                        text=f"{team} Goalkeeper Stats Table").parent.parent
                     trows = gk_stats_table.find("tbody").find_all("tr")
                     for row in trows:
                         name = row.find("th").find("a").text
@@ -328,8 +468,9 @@ def match_reports(season):
                         tdata = row.find_all("td")
                         for datum in tdata:
                             if datum["data-stat"] in list(gk_match_info.keys()):
-                                gk_match_stats_table[team][datum["data-stat"]].append(datum.text)
+                                gk_match_stats_table[team][datum["data-stat"]
+                                                           ].append(datum.text)
 
                     gk_stat_df = pd.DataFrame(gk_match_stats_table[team])
-                    gk_stat_df.to_csv(f"{path}/{team} gk_stats.csv", index=False)
-
+                    gk_stat_df.to_csv(
+                        f"{path}/{team} gk_stats.csv", index=False)
