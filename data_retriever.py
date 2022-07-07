@@ -123,6 +123,7 @@ COLUMNS = ['player',
 
 
 def folder_create(folder_path):
+    # Creates folder for each fixture retrieved
     try:
         os.mkdir(folder_path)
     except OSError:
@@ -132,6 +133,7 @@ def folder_create(folder_path):
 
 
 def file_create(file_details, file_name, file_path):
+    # Creates files for each fixture retrieved
     try:
         with open(f"{file_path}/{file_name}") as file:
             file_data = json.load(file)
@@ -147,10 +149,11 @@ def file_create(file_details, file_name, file_path):
 def players_with_team_position(season):
     """Returns list of players in a team and whether or not they are an outfield player or a goalkeeper"""
 
-    if season not in range(17, 22):
+    if season not in SEASON_RANGE:
         print("Season should range from 17 to 21 representing 2017-2018 to 2021-2022.")
         return
 
+    # Links corresponding to seasons specified
     SEASON_STATS = {
         "2021-2022": "https://fbref.com/en/comps/9/Premier-League-Stats",
         "2020-2021": "https://fbref.com/en/comps/9/10728/2020-2021-Premier-League-Stats",
@@ -173,6 +176,7 @@ def players_with_team_position(season):
 
     plyrs_tm_pstn = {}
 
+    # Scrape data from website to locate outfield players and goalkeepers
     for team, link in team_links.items():
         plyrs_tm_pstn[team] = {
             "outfield": [],
@@ -202,6 +206,7 @@ def score_and_fixtures(season):
             f"Season should range from {SEASON_RANGE.start} to {SEASON_RANGE.stop - 1} representing 20{SEASON_RANGE.start}-20{SEASON_RANGE.start + 1} to 20{SEASON_RANGE.stop - 1}-20{SEASON_RANGE.stop}.")
 
     else:
+        # Links corresponding to seasons specified
         SEASONS = {
             "2021-2022": "https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures",
             "2020-2021": "https://fbref.com/en/comps/9/10728/schedule/2020-2021-Premier-League-Scores-and-Fixtures",
@@ -243,7 +248,7 @@ def score_and_fixtures(season):
 def match_reports(season):
     """Downloading match report for matches played in a particular season"""
 
-    if season not in range(17, 22):
+    if season not in SEASON_RANGE:
         print("Season should range from 17 to 21 representing 2017-2018 to 2021-2022.")
 
     else:
@@ -444,10 +449,6 @@ def match_reports(season):
                         column_length = int(
                             len(match_stats_table[team]['defense'][column]) / 2)
                         match_stats_table[team]['defense'][column] = match_stats_table[team]['defense'][column][:column_length]
-
-                    # for stat in list(match_stats_table[team].keys()):
-                    #     stat_df = pd.DataFrame(match_stats_table[team][stat])
-                    #     stat_df.to_csv(f"{path}/{team} {stat}.csv", index=False)
 
                     stat_dfs = [pd.DataFrame(match_stats_table[team][s])
                                 for s in ['misc', 'passing', 'passing_types', 'defense', 'attack', 'possession']]

@@ -3,6 +3,7 @@ import pandas as pd
 
 from player_data import PlayerData
 
+
 def column_creator(df: pd.DataFrame, expression: str):
     """
     Creates columns based on formula specified
@@ -10,7 +11,7 @@ def column_creator(df: pd.DataFrame, expression: str):
     df: pandas dataframe(PlayerData player_stats)
     expression: str(expects the format 'name_of_new_column = existing column op existing columns ...')
         - op could be any of the four basic arithmetic operations: + - / *
-    
+
     NB:- PEMDAS or BODMAS is not followed, rather the equation is solved from left to right
     """
 
@@ -44,8 +45,6 @@ def column_creator(df: pd.DataFrame, expression: str):
     # Replaces NaN, inf with 0
     df[column_name].replace([np.nan, np.inf], 0, inplace=True)
 
-# Seasons is set from 17/18 to 20/21, 21/22 is left for simulation
-seasons = [f'{i}/{i + 1}' for i in range(17, 21)]
 
 # Dataset columns
 columns = {'player_stats': [
@@ -210,7 +209,7 @@ extra_team_columns = [
 # Outcomes being predicted for
 outfield_outcomes = [
     'APPS', 'STARTS', 'PLAYED_60+',
-    'GOALS', 'ASSISTS', 
+    'GOALS', 'ASSISTS',
     'CLEANSHEETS', 'CONCEDED_2_GOALS+'
 ]
 
@@ -230,34 +229,49 @@ def dataset_generator(gameweek_range, threshold, target):
 
     :param 
         gameweek_range: int | list -> matches with gameweek(s) to be considered
-        threshold: int
+        threshold: int -> any player with minutes less than threshold is dropped
+        target: int -> specifies number of matches over which we are predicting
+
+    Dataset is stored in a .csv file from the pandas DataFrame
     """
+
+    # Seasons is set from 17/18 to 20/21, 21/22 is left for simulation
+    seasons = [f'{i}/{i + 1}' for i in range(17, 21)]
+
+    # Initialisiton of PlayerData classes
     all_data = {season: PlayerData(
         int(season.split('/')[0])) for season in seasons}
 
+    # Column names specified in 'headers' attribute from PlayerData class
     categories = all_data[seasons[0]].headers['header']
     headers = [value for value in categories.values()]
     headers += ['transfers_balance', 'creativity', 'transfers_in', 'sub_ins', 'ict_index', 'sub_outs', 'played_60', 'bonus',
                 'appearances', 'total_points', 'transfers_out', 'bps', 'starts', 'threat', 'influence', 'value', 'value_change']
 
+    # team names specified in 'players' attribure from PlayerData class
     teams = {key: sorted(value.players.keys())
              for key, value in all_data.items()}
 
     # Generating X part of dataset
+
+    # Dataset containing DFs from PlayerData 'data_lister' method
     X_prep = {key: value.data_lister(gameweek_range=gameweek_range)
               for key, value in all_data.items()}
 
+    # Appending of extra columns from 'player related' columns
     for season in seasons:
         for team in teams[season]:
             for exprssn in extra_player_columns:
                 column_creator(df=X_prep[season][team]
                                ['player_stats'], expression=exprssn)
 
+    # Appending of extra columns from 'team related' columns
     for season in seasons:
         for exprssn in extra_team_columns:
             column_creator(df=X_prep[season]
                            ['teams_stats'], expression=exprssn)
 
+    # Find which position most represents the player i.e. position with the most frequency. If tie, pick position that occurs first
     for season in seasons:
         for team in teams[season]:
             positions = X_prep[season][team]['player_stats']['position']
@@ -282,11 +296,13 @@ def dataset_generator(gameweek_range, threshold, target):
                     places.append("Nil")
 
             X_prep[season][team]['player_stats']['place'] = places
+
+            # Get age of player from age column
             ages = X_prep[season][team]['player_stats']['age']
             ages = [int(age.split('-')[0]) if age != 0 else 0 for age in ages]
             X_prep[season][team]['player_stats']['age'] = ages
 
-    # Filtering of player_stats
+    # Filtering of player_stats, given players have been filtered by threshold
     filtered_players = {}
     for season in seasons:
         filtered_players[season] = {}
@@ -299,7 +315,7 @@ def dataset_generator(gameweek_range, threshold, target):
             filtered_players[season][team] = list(
                 X_prep[season][team]['player_stats']['player'])
 
-    # Sort teams based on points gathered over the course of games
+    # Sort teams based on points gathered over the course of games to get position of club
     for season in seasons:
         teams_positions = X_prep[season]['teams_stats'].sort_values(by='pts')
         teams_positions.reset_index(inplace=True, drop=True)
@@ -313,6 +329,7 @@ def dataset_generator(gameweek_range, threshold, target):
         t_stats = X_prep[season]['teams_stats']
         X[season] = {}
 
+        # Append team stats to their corresponding players
         for team in teams[season]:
             t_col_stats = t_stats[t_stats['team_name']
                                   == team][columns['teams_stats']]
@@ -321,10 +338,13 @@ def dataset_generator(gameweek_range, threshold, target):
                 num_of_plyrs)]
             t_col_stats.reset_index(inplace=True, drop=True)
 
+            # Combine all data into one DataFrame
             X[season][team] = pd.concat(
                 [X_prep[season][team]["player_stats"][cols], t_col_stats], axis=1)
 
     # Generating y part of dataset
+
+    # Dataset containing DFs from PlayerData 'data_lister' method
     y_prep = {key: value.data_lister(gameweek_range=[gameweek_range[1], gameweek_range[1]+target])
               for key, value in all_data.items()}
 
@@ -337,14 +357,17 @@ def dataset_generator(gameweek_range, threshold, target):
             y[season][team] = y[season][team].reindex(
                 columns=["player"]+outfield_outcomes+discipline_outcomes, fill_value=0)  # initialisation of outcomes to 0
 
-    # 'GOALS', 'ASSISTS', 'APPS', 'PLAYED_60+'
+    # 'GOALS', 'ASSISTS', 'APPS', 'PLAYED_60+', 'STARTS', 'YELLOW_CARDS', 'RED_CARDS', 'CONCEDED_2_GOALS+', 'CLEANSHEETS'
 
-    # Setting of outcomes as True if certain criteria are met or False otherwise
+    # Setting of outcomes
     for season in seasons:
         for team in teams[season]:
             fltr = (y_prep[season]['played_fixtures']['squad_a'] == team) | (
-                y_prep[season]['played_fixtures']['squad_b'] == team)
-            played_fixtures = y_prep[season]['played_fixtures'][fltr].reset_index()
+                y_prep[season]['played_fixtures']['squad_b'] == team)  # Filter for home and away matches
+            played_fixtures = y_prep[season]['played_fixtures'][fltr].reset_index(
+            )
+
+            # Record how many times a team conceded two or more goals
             conceded_2 = 0
             for row in range(len(played_fixtures)):
                 score = played_fixtures.loc[row]['score'].split('–')
@@ -355,9 +378,11 @@ def dataset_generator(gameweek_range, threshold, target):
                     conceded_2 = conceded_2 + \
                         1 if int(score[0]) >= 2 else conceded_2
 
+            # Record how cleansheets a team accumulated
             cleansheets = y_prep['teams_stats'][y_prep['teams_stats']
                                                 ['team'] == team]['cleansheets'].values[0]
 
+            # Loop through filtered players and record all the outcomes specified
             for player in filtered_players[season][team]:
                 stats = y_prep[season][team]['player_stats'].copy()
                 row = stats[stats['player'] == player]
@@ -393,6 +418,7 @@ def dataset_generator(gameweek_range, threshold, target):
         for team in teams[season]:
             datasets.append(datasets_prep[season][team])
 
+    # Concatenate and save dataset in .csv file
     df = pd.concat(datasets, ignore_index=True)
     df.to_csv(
         f'datasets/dataset_{gameweek_range[0]}_to_{gameweek_range[1]}_{target}.csv', index=False)
