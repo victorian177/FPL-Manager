@@ -3,16 +3,25 @@ import pandas as pd
 
 from player_data import PlayerData
 
-# Creates columns based on formula specified
-
-
 def column_creator(df: pd.DataFrame, expression: str):
+    """
+    Creates columns based on formula specified
+
+    df: pandas dataframe(PlayerData player_stats)
+    expression: str(expects the format 'name_of_new_column = existing column op existing columns ...')
+        - op could be any of the four basic arithmetic operations: + - / *
+    
+    NB:- PEMDAS or BODMAS is not followed, rather the equation is solved from left to right
+    """
+
+    # Splitting of expression into its constituent components
     column_name, formula = expression.split(" = ")
     formula = formula.split(' ')
     df[column_name] = df[formula[0]]
     is_operation = True
     operation = ''
 
+    # Loop through formula and perform operations
     for string in formula[1:]:
         if is_operation:
             operation = string
@@ -32,9 +41,10 @@ def column_creator(df: pd.DataFrame, expression: str):
 
         is_operation = not is_operation
 
+    # Replaces NaN, inf with 0
     df[column_name].replace([np.nan, np.inf], 0, inplace=True)
 
-
+# Seasons is set from 17/18 to 20/21, 21/22 is left for simulation
 seasons = [f'{i}/{i + 1}' for i in range(17, 21)]
 
 # Dataset columns
@@ -96,11 +106,14 @@ columns = {'player_stats': [
 
     # Team stats
     'teams_stats': [
+    'xG',
     'pts_per_game',
     'home_pts_ratio',
     'away_pts_ratio',
     'wins_ratio',
     'draws_ratio',
+    'losses_ratio',
+    'cleansheets_ratio',
     'h_cleansheets_ratio',
     'a_cleansheets_ratio',
     'goal_ratio',
@@ -112,6 +125,7 @@ columns = {'player_stats': [
     'away_draw_ratio',
     'home_loss_ratio',
     'away_loss_ratio',
+    'pct_possession',
     'team_position']
 }
 
@@ -173,10 +187,12 @@ extra_player_columns = [
 # Extra team related columns
 extra_team_columns = [
     'pts_per_game = pts / matches_played',
+    'cleansheets_ratio = cleansheets / matches_played',
     'home_pts_ratio = home_pts / pts',
     'away_pts_ratio = away_pts / pts',
     'wins_ratio = wins / matches_played',
     'draws_ratio = draws / matches_played',
+    'losses_ratio = losses / matches_played',
     'h_cleansheets_ratio = home_cleansheets / cleansheets',
     'a_cleansheets_ratio = away_cleansheets / cleansheets',
     'pct_possession = pct_possession / matches_played',
@@ -191,23 +207,31 @@ extra_team_columns = [
     'away_loss_ratio = away_losses / losses'
 ]
 
+# Outcomes being predicted for
 outfield_outcomes = [
-    'GOALS', 'APPS', 'ASSISTS', 'PLAYED_60+',
-    'CLEANSHEETS', 'CONCEDED_2_GOALS+',
-    'PENALTY_MISSES', 'OWN_GOALS'
+    'APPS', 'STARTS', 'PLAYED_60+',
+    'GOALS', 'ASSISTS', 
+    'CLEANSHEETS', 'CONCEDED_2_GOALS+'
 ]
 
 goalkeep_outcomes = [
     'CLEANSHEETS', 'THREE_SAVES+', 'PENALTY_SAVES'
 ]
 
-discipline_outcome = [
+discipline_outcomes = [
     'YELLOW_CARDS',
     'RED_CARDS'
 ]
 
 
 def dataset_generator(gameweek_range, threshold, target):
+    """
+    Generates a dataset having X having columns specified in 'Dataset columns' and y having columns specified in 'Outcomes'
+
+    :param 
+        gameweek_range: int | list -> matches with gameweek(s) to be considered
+        threshold: int
+    """
     all_data = {season: PlayerData(
         int(season.split('/')[0])) for season in seasons}
 
@@ -311,13 +335,29 @@ def dataset_generator(gameweek_range, threshold, target):
             y[season][team] = pd.DataFrame(
                 filtered_players[season][team], columns=["player"])
             y[season][team] = y[season][team].reindex(
-                columns=["player"]+outfield_outcomes[:4], fill_value=0)  # initialisation of outcomes to 0
+                columns=["player"]+outfield_outcomes+discipline_outcomes, fill_value=0)  # initialisation of outcomes to 0
 
     # 'GOALS', 'ASSISTS', 'APPS', 'PLAYED_60+'
 
     # Setting of outcomes as True if certain criteria are met or False otherwise
     for season in seasons:
         for team in teams[season]:
+            fltr = (y_prep[season]['played_fixtures']['squad_a'] == team) | (
+                y_prep[season]['played_fixtures']['squad_b'] == team)
+            played_fixtures = y_prep[season]['played_fixtures'][fltr].reset_index()
+            conceded_2 = 0
+            for row in range(len(played_fixtures)):
+                score = played_fixtures.loc[row]['score'].split('–')
+                if played_fixtures.loc[row]['squad_a'] == team:
+                    conceded_2 = conceded_2 + \
+                        1 if int(score[1]) >= 2 else conceded_2
+                else:
+                    conceded_2 = conceded_2 + \
+                        1 if int(score[0]) >= 2 else conceded_2
+
+            cleansheets = y_prep['teams_stats'][y_prep['teams_stats']
+                                                ['team'] == team]['cleansheets'].values[0]
+
             for player in filtered_players[season][team]:
                 stats = y_prep[season][team]['player_stats'].copy()
                 row = stats[stats['player'] == player]
@@ -328,9 +368,16 @@ def dataset_generator(gameweek_range, threshold, target):
 
                     y[season][team].loc[idx, 'GOALS'] += int(row['goals'])
                     y[season][team].loc[idx, 'APPS'] += int(row['appearances'])
+                    y[season][team].loc[idx, 'STARTS'] += int(row['starts'])
                     y[season][team].loc[idx, 'ASSISTS'] += int(row['assists'])
+                    y[season][team].loc[idx,
+                                        'YELLOW_CARDS'] += int(row['cards_yellow'])
+                    y[season][team].loc[idx,
+                                        'RED_CARDS'] += int(row['cards_red'])
                     if int(row['minutes']) > 60:
                         y[season][team].loc[idx, 'PLAYED_60+'] += 1
+                    y[season][team].loc[idx, 'CONCEDED_2_GOALS+'] += conceded_2
+                    y[season][team].loc[idx, 'CLEANSHEETS'] += cleansheets
 
     # Joining of X, y parts of datasets
     datasets_prep = {}
@@ -338,7 +385,7 @@ def dataset_generator(gameweek_range, threshold, target):
         datasets_prep[season] = {}
         for team in teams[season]:
             datasets_prep[season][team] = pd.concat(
-                [X[season][team], y[season][team][outfield_outcomes[:4]]], axis=1)  # first ten stats in outfield outcomes
+                [X[season][team], y[season][team][outfield_outcomes+discipline_outcomes]], axis=1)
 
     # Concatenating of all datasets to form one dataset
     datasets = []
