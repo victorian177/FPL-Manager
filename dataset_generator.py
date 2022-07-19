@@ -379,8 +379,8 @@ def dataset_generator(gameweek_range, threshold, target):
                         1 if int(score[0]) >= 2 else conceded_2
 
             # Record how cleansheets a team accumulated
-            cleansheets = y_prep['teams_stats'][y_prep['teams_stats']
-                                                ['team'] == team]['cleansheets'].values[0]
+            cleansheets = y_prep[season]['teams_stats'][y_prep[season]['teams_stats']
+                                                        ['team_name'] == team]['cleansheets'].values[0]
 
             # Loop through filtered players and record all the outcomes specified
             for player in filtered_players[season][team]:
